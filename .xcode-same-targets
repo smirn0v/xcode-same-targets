@@ -1,0 +1,20 @@
+{
+    "compare-sets": [
+        { 
+            "targets": ["MyCom-Alpha-Enterprise", "MyCom-Corp-Beta-Enterprise", "MyCom-Pub-Beta-Enterprise", "MyCom-AppStore"]
+        },
+        {
+            "targets": ["MRMail-Alpha-Enterprise", "MRMail-Corp-Beta-Enterprise", "MRMail-Pub-Beta-Enterprise", "MRMail-AppStore"]
+        },
+        {
+            "targets": ["MyCom-AppStore", "MRMail-AppStore"],
+            "ignores": ["^my_com*png$", "^mail_ru_*png$"]
+        }
+    ],
+    "exclusive": {
+        "MyCom-Alpha-Enterprise": [],
+        "MyCom-Corp-Beta-Enterprise": [],
+        "MyCom-Pub-Beta-Enterprise": [],
+        "MyCom-AppStore": []
+    }
+}
