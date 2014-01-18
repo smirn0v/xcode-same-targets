@@ -26,7 +26,7 @@ module Xcodeproj
                 def recursive(&block)
                     if self.respond_to?('recursive_children')
                         recursive_children.each { |chld|
-                            block.call(chld) unless chld.is_a?(PBXGroup)
+                            block.call(chld) unless chld.is_a?(PBXGroup) || chld.wrong_parent
                         }
                     else
                         block.call(self)
@@ -96,6 +96,27 @@ should_be_ignored = ->(path, ignores) {
    return ignored
 }
 
+exclusive_except = ->(name,local_exclusive) {
+    exclusive = []
+    if config.key?('exclusive')
+        config['exclusive'].each { |t_name, value|
+            next if t_name == name
+            exclusive.concat(value)
+        }
+        if config['exclusive'].key?(name)
+            exclusive = exclusive - config['exclusive'][name]
+        end
+    end
+    local_exclusive.each { |t_name, value|
+        next if t_name == name
+        exclusive.concat(value)
+    }
+    if local_exclusive.key?(name)
+        exclusive = exclusive - local_exclusive[name]
+    end
+    return exclusive
+}
+
 success = true
 config['compare-sets'].each { |cs|
 
@@ -113,12 +134,25 @@ config['compare-sets'].each { |cs|
         ignores.concat(config['exclusive'][t1_name]) if config.key?('exclusive') && config['exclusive'].key?(t1_name)
         ignores.concat(config['exclusive']['*']) if config.key?('exclusive') && config['exclusive'].key?('*')
 
+        foreign_exclusive = exclusive_except[t1_name, cs.key?('exclusive')?cs['exclusive']:{}]
+        
         t1_extra = target_files[t1_name] - target_files[t2_name]
+
+        target_files[t1_name].each { |fr|
+            conflicting = false
+            fr.recursive { |cfr|
+                foreign_exclusive.each { |iregx|
+                    break if conflicting = (cfr.real_path.to_s[/#{iregx}/] != nil)
+                }
+                break if conflicting
+            }
+            t1_extra << fr if conflicting
+        }
 
         t1_extra.reject! { |fr|
             need_reject = false            
             fr.recursive { |cfr|
-               need_reject = cfr.wrong_parent || should_be_ignored[cfr.real_path.to_s, ignores]
+               need_reject = should_be_ignored[cfr.real_path.to_s, ignores]
                break if need_reject
             }
             need_reject
