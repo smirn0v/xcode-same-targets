@@ -12,11 +12,15 @@
                           "MyCom-AppStore": [
                                              "/resources/infoplist-strings/my-com.*$",
                                              "/resources/images/my_com/.*$",
-                                             "/resources/sounds/message.wav$"
+                                             "/resources/sounds/message.wav$",
+                                             "/src/global-handlers/constant-strings/MyComConstantStringPolicy.m$",
+                                             "/src/email-transport/url_provider/MyComServerURLProvider.m$"
                                             ],
                           "MRMail-AppStore": [
                                               "/resources/infoplist-strings/mail-ru.*$",
-                                              "/resources/images/mail_ru/.*$"
+                                              "/resources/images/mail_ru/.*$",
+                                              "/src/global-handlers/constant-strings/MailRuConstantStringPolicy.m$",
+                                              "/src/email-transport/url_provider/MailRuServerURLProvider.m$"
                                              ]
                          }
         }

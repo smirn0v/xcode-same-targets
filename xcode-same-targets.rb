@@ -32,6 +32,11 @@ module Xcodeproj
                         block.call(self)
                     end
                 end
+                # corrupted target
+                def wrong_parent
+                    parent=Xcodeproj::Project::Object::GroupableHelper.parent(self)
+                    return parent.is_a?(Xcodeproj::Project::Object::PBXBuildFile)
+                end
             end
         end
     end
@@ -40,16 +45,25 @@ end
 project_paths = Pathname.pwd.children.select { |pn| pn.extname == '.xcodeproj' }
 
 if project_paths.empty? 
-    report_fail("No xcode projects found inside current directory")
+    report_fail("No xcode projects found inside current directory.")
 end
 
-report_fail("No configuration file('#{CONFIG_FILE_NAME}') found") unless File.exist?(CONFIG_FILE_NAME)
 
 report_ok("#{project_paths.first}")
 
-config = JSON.parse(IO.read(CONFIG_FILE_NAME))
+config = nil 
+
+unless File.exist?(CONFIG_FILE_NAME)
+    report_ok("No configuration file '#{CONFIG_FILE_NAME}' found, will compare all targets.") unless File.exist?(CONFIG_FILE_NAME)
+else
+    config = JSON.parse(IO.read(CONFIG_FILE_NAME))
+end
 
 project = Xcodeproj::Project.open(project_paths.first)
+
+if !config
+    config = { "compare-sets" => [ {"targets" => project.targets.map{|t| t.name}} ] }
+end
 
 target_files = {}
 
@@ -68,7 +82,7 @@ project.targets.each { |target|
 
 extra_target_files = {}
 
-report_fail("No compare sets found") unless config.key?("compare-sets")
+report_fail("No compare sets found.") unless config.key?("compare-sets")
 
 should_be_ignored = ->(path, ignores) { 
 
@@ -85,7 +99,7 @@ should_be_ignored = ->(path, ignores) {
 success = true
 config['compare-sets'].each { |cs|
 
-    report_fail("All compare sets must contain targets array") unless cs.key?('targets') && cs['targets'].kind_of?(Array)
+    report_fail("All compare sets must contain targets array.") unless cs.key?('targets') && cs['targets'].kind_of?(Array)
 
     extra = [].to_set
 
@@ -97,14 +111,14 @@ config['compare-sets'].each { |cs|
         ignores = []
         ignores.concat(cs['exclusive'][t1_name]) if cs.key?('exclusive') && cs['exclusive'].key?(t1_name)
         ignores.concat(config['exclusive'][t1_name]) if config.key?('exclusive') && config['exclusive'].key?(t1_name)
-        ignores.concat(config['exclusive']['*']) if config.key?('exclusive') & config['exclusive'].key?('*')
+        ignores.concat(config['exclusive']['*']) if config.key?('exclusive') && config['exclusive'].key?('*')
 
         t1_extra = target_files[t1_name] - target_files[t2_name]
 
         t1_extra.reject! { |fr|
             need_reject = false            
             fr.recursive { |cfr|
-               need_reject = should_be_ignored[cfr.real_path.to_s, ignores]
+               need_reject = cfr.wrong_parent || should_be_ignored[cfr.real_path.to_s, ignores]
                break if need_reject
             }
             need_reject
@@ -118,10 +132,12 @@ config['compare-sets'].each { |cs|
         report_error("Conflicting files for [#{cs['targets'].join(', ')}]")
         extra.each { |fr|
             fr.recursive { |cfr|
-                puts("  * #{cfr.real_path}")
+                puts("    #{cfr.real_path}")
             }
         }
     end
 }
+
+report_ok("No conflicts found.") if success
 
 exit(success ? 0 : 1)
