@@ -8,13 +8,50 @@
         },
         {
             "targets": ["MyCom-AppStore", "MRMail-AppStore"],
-            "ignores": ["^my_com*png$", "^mail_ru_*png$"]
+            "exclusive": { 
+                          "MyCom-AppStore": [
+                                             "/resources/infoplist-strings/my-com.*$",
+                                             "/resources/images/my_com/.*$",
+                                             "/resources/sounds/message.wav$"
+                                            ],
+                          "MRMail-AppStore": [
+                                              "/resources/infoplist-strings/mail-ru.*$",
+                                              "/resources/images/mail_ru/.*$"
+                                             ]
+                         }
         }
     ],
     "exclusive": {
-        "MyCom-Alpha-Enterprise": [],
-        "MyCom-Corp-Beta-Enterprise": [],
-        "MyCom-Pub-Beta-Enterprise": [],
-        "MyCom-AppStore": []
+        "MyCom-Alpha-Enterprise": [ 
+                                    "/resources/images/my_com/icon/alpha/.*$",
+                                    "/resources/settings/mycom-alpha/Settings.bundle$"
+                                  ],
+        "MyCom-Corp-Beta-Enterprise": [
+                                        "/resources/images/my_com/icon/beta/.*$",
+                                        "/resources/settings/beta/Settings.bundle$"
+                                      ],
+        "MyCom-Pub-Beta-Enterprise": [
+                                       "/resources/images/my_com/icon/beta/.*$",
+                                       "/resources/settings/beta/Settings.bundle$"
+                                     ],
+        "MyCom-AppStore": [ 
+                           "/resources/images/my_com/icon/store/.*$"
+                          ],
+        "MRMail-Alpha-Enterprise": [
+                                     "/resources/images/mail_ru/icon/alpha/.*$",
+                                     "/resources/settings/alpha/Settings.bundle$"
+                                   ],
+        "MRMail-Corp-Beta-Enterprise": [
+                                        "/resources/images/mail_ru/icon/beta/.*$",
+                                        "/resources/settings/beta/Settings.bundle$"
+                                       ],
+        "MRMail-Pub-Beta-Enterprise": [
+                                       "/resources/images/mail_ru/icon/beta/.*$",
+                                       "/resources/settings/beta/Settings.bundle$"
+                                      ],
+        "MRMail-AppStore": [
+                            "/resources/images/mail_ru/icon/store/.*$"
+                           ],
+        "*": ["libPods.*?\.a$"]
     }
 }

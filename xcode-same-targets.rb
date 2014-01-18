@@ -19,6 +19,24 @@ def report_ok(msg)
     puts "["+"+".green+"] #{msg}"
 end
 
+module Xcodeproj
+    class Project
+        module Object
+            class AbstractObject
+                def recursive(&block)
+                    if self.respond_to?('recursive_children')
+                        recursive_children.each { |chld|
+                            block.call(chld) unless chld.is_a?(PBXGroup)
+                        }
+                    else
+                        block.call(self)
+                    end
+                end
+            end
+        end
+    end
+end
+
 project_paths = Pathname.pwd.children.select { |pn| pn.extname == '.xcodeproj' }
 
 if project_paths.empty? 
@@ -30,15 +48,6 @@ report_fail("No configuration file('#{CONFIG_FILE_NAME}') found") unless File.ex
 report_ok("#{project_paths.first}")
 
 config = JSON.parse(IO.read(CONFIG_FILE_NAME))
-exclusive = ->(name,file_ref) { 
-   return false unless !config.key?('exclusive') 
-   return false unless !config['exclusive'].key?(name)
-
-   for ex_path in config['exclusive'][name] do
-       return true if path.end_with?(ex_path)
-   end
-   return false
-}
 
 project = Xcodeproj::Project.open(project_paths.first)
 
@@ -59,17 +68,60 @@ project.targets.each { |target|
 
 extra_target_files = {}
 
-target_files.keys.combination(2).each { |t1_name,t2_name|
+report_fail("No compare sets found") unless config.key?("compare-sets")
 
-    extra_target_files[t1_name] ||= [].to_set
-    t1_extra = target_files[t1_name] - target_files[t2_name]
-    extra_target_files[t1_name].merge(t1_extra)
+should_be_ignored = ->(path, ignores) { 
 
+   ignored = false
+
+   ignores.each { |iregx|
+    ignored = path[/#{iregx}/] != nil 
+    break if ignored
+   }
+
+   return ignored
 }
 
-extra_target_files.each { |name,extra|
+success = true
+config['compare-sets'].each { |cs|
+
+    report_fail("All compare sets must contain targets array") unless cs.key?('targets') && cs['targets'].kind_of?(Array)
+
+    extra = [].to_set
+
+    cs['targets'].permutation(2).each { |t1_name, t2_name|
+
+        report_fail("'#{t1_name}' target not found") unless project.targets.select { |t| t1_name == t.name }.length == 1
+        report_fail("'#{t2_name}' target not found") unless project.targets.select { |t| t2_name == t.name }.length == 1
+
+        ignores = []
+        ignores.concat(cs['exclusive'][t1_name]) if cs.key?('exclusive') && cs['exclusive'].key?(t1_name)
+        ignores.concat(config['exclusive'][t1_name]) if config.key?('exclusive') && config['exclusive'].key?(t1_name)
+        ignores.concat(config['exclusive']['*']) if config.key?('exclusive') & config['exclusive'].key?('*')
+
+        t1_extra = target_files[t1_name] - target_files[t2_name]
+
+        t1_extra.reject! { |fr|
+            need_reject = false            
+            fr.recursive { |cfr|
+               need_reject = should_be_ignored[cfr.real_path.to_s, ignores]
+               break if need_reject
+            }
+            need_reject
+        }
+
+        extra.merge(t1_extra)
+    }
+
     unless extra.empty?
-        report_error("'#{name}' target has extra files in it")
-        extra.each { |el| puts "  * #{el.display_name}" }
-    end 
+        success = false
+        report_error("Conflicting files for [#{cs['targets'].join(', ')}]")
+        extra.each { |fr|
+            fr.recursive { |cfr|
+                puts("  * #{cfr.real_path}")
+            }
+        }
+    end
 }
+
+exit(success ? 0 : 1)
