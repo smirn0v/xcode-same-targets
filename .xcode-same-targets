@@ -14,13 +14,15 @@
                                              "/resources/images/my_com/.*$",
                                              "/resources/sounds/message.wav$",
                                              "/src/global-handlers/constant-strings/MyComConstantStringPolicy.m$",
-                                             "/src/email-transport/url_provider/MyComServerURLProvider.m$"
+                                             "/src/email-transport/url_provider/MyComServerURLProvider.m$",
+                                             "/resources/text/my_com_error.html$"
                                             ],
                           "MRMail-AppStore": [
                                               "/resources/infoplist-strings/mail-ru.*$",
                                               "/resources/images/mail_ru/.*$",
                                               "/src/global-handlers/constant-strings/MailRuConstantStringPolicy.m$",
-                                              "/src/email-transport/url_provider/MailRuServerURLProvider.m$"
+                                              "/src/email-transport/url_provider/MailRuServerURLProvider.m$",
+                                              "/resources/text/mail_ru_error.html$"
                                              ]
                          }
         }
